@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Assessment Health Check</title>
+<style>
+  :root{
+    --ink:#14181C;
+    --panel:#1E2429;
+    --panel-raised:#242B31;
+    --rail:#31393F;
+    --paper:#EDE9E1;
+    --paper-dim:#A8A79D;
+    --green:#4CAF6D;
+    --amber:#E8A33D;
+    --red:#D65F5F;
+    --cable:#7DD3C0;
+    --focus: 2px solid var(--cable);
+  }
+  *{box-sizing:border-box;}
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--paper);
+    font-family:'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{
+    font-family:'IBM Plex Sans Condensed','Arial Narrow',sans-serif;
+    letter-spacing:0.02em;
+    margin:0;
+  }
+  .mono{ font-family:'IBM Plex Mono','Courier New',monospace; letter-spacing:0.02em; }
+
+  .wrap{ max-width:880px; margin:0 auto; padding:28px 20px 80px; }
+
+  header.top{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    border-bottom:1px solid var(--rail); padding-bottom:16px; margin-bottom:28px;
+    flex-wrap:wrap; gap:12px;
+  }
+  header.top .eyebrow{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.14em; color:var(--cable);
+    font-family:'IBM Plex Mono',monospace; margin-bottom:6px;
+  }
+  header.top h1{ font-size:28px; color:var(--paper); font-weight:600; }
+  header.top .sub{ color:var(--paper-dim); font-size:13px; margin-top:4px; max-width:44ch; }
+  .rec-dot{
+    width:9px;height:9px;border-radius:50%; background:var(--red); display:inline-block;
+    box-shadow:0 0 6px var(--red); animation:pulse 2s infinite ease-in-out;
+    margin-right:6px; vertical-align:middle;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .status-chip{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--paper-dim);
+    background:var(--panel); border:1px solid var(--rail); padding:6px 10px; border-radius:3px;
+  }
+
+  .setup{
+    background:var(--panel); border:1px solid var(--rail); border-radius:6px; padding:18px 20px; margin-bottom:24px;
+  }
+  .setup h3{ font-size:13px; text-transform:uppercase; letter-spacing:0.1em; color:var(--paper-dim); margin-bottom:12px; }
+  .field-row{ display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .field{ flex:1; min-width:200px; }
+  label{ display:block; font-size:11px; color:var(--paper-dim); margin-bottom:4px; font-family:'IBM Plex Mono',monospace; }
+  input[type=text], input[type=number], textarea{
+    width:100%; background:var(--ink); border:1px solid var(--rail); color:var(--paper);
+    padding:8px 10px; border-radius:4px; font-size:14px; font-family:inherit;
+  }
+  input:focus, textarea:focus, button:focus, .chk:focus-within{ outline:var(--focus); outline-offset:1px; }
+
+  .lo-list{ display:flex; flex-direction:column; gap:8px; margin-top:8px; }
+  .lo-row{ display:flex; gap:8px; align-items:center; }
+  .lo-row input{ flex:1; }
+  .icon-btn{
+    background:none; border:1px solid var(--rail); color:var(--paper-dim); border-radius:4px;
+    width:30px; height:30px; cursor:pointer; font-size:15px; line-height:1;
+  }
+  .icon-btn:hover{ border-color:var(--cable); color:var(--cable); }
+  .add-lo{
+    background:none; border:1px dashed var(--rail); color:var(--paper-dim); border-radius:4px;
+    padding:7px 12px; cursor:pointer; font-size:12px; margin-top:4px; align-self:flex-start;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .add-lo:hover{ border-color:var(--cable); color:var(--cable); }
+
+  .rack{ display:flex; flex-direction:column; gap:2px; }
+  .channel{
+    background:var(--panel); border:1px solid var(--rail); border-left:3px solid var(--rail);
+    border-radius:4px; margin-bottom:14px; overflow:hidden;
+    transition: border-left-color .2s ease;
+  }
+  .channel.complete{ border-left-color: var(--green); }
+  .channel.partial{ border-left-color: var(--amber); }
+  .ch-head{
+    display:flex; align-items:center; justify-content:space-between; padding:14px 18px;
+    cursor:pointer; user-select:none;
+  }
+  .ch-head .left{ display:flex; align-items:center; gap:12px; }
+  .ch-num{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink); background:var(--paper-dim);
+    width:24px; height:24px; border-radius:3px; display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .channel.complete .ch-num{ background:var(--green); color:var(--ink); }
+  .channel.partial .ch-num{ background:var(--amber); color:var(--ink); }
+  .ch-title{ font-size:15px; font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
+  .ch-meta{ font-size:11px; color:var(--paper-dim); font-family:'IBM Plex Mono',monospace; }
+  .chevron{ color:var(--paper-dim); transition:transform .15s ease; font-size:12px; }
+  .channel.open .chevron{ transform:rotate(90deg); }
+  .ch-body{ display:none; padding:0 18px 18px 54px; }
+  .channel.open .ch-body{ display:block; }
+
+  .chk{
+    display:flex; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid var(--rail);
+  }
+  .chk:last-child{ border-bottom:none; }
+  .chk input[type=checkbox]{
+    margin-top:3px; width:16px; height:16px; accent-color:var(--cable); flex-shrink:0;
+  }
+  .chk .txt{ font-size:13.5px; line-height:1.4; }
+  .chk .hint{ font-size:11.5px; color:var(--paper-dim); margin-top:2px; }
+  .chk .loc-input{ margin-top:6px; max-width:340px; }
+  .chk .loc-input input{ font-size:12.5px; padding:6px 8px; }
+
+  .word-count-live{
+    display:flex; align-items:center; gap:10px; margin:4px 0 6px 0; flex-wrap:wrap;
+  }
+  .word-count-live input{ max-width:120px; }
+  .wc-status{ font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .wc-target{ font-size:11.5px; color:var(--paper-dim); }
+
+  .meter-section{
+    background:var(--panel-raised); border:1px solid var(--rail); border-radius:8px;
+    padding:24px 24px 20px; margin:30px 0 24px; text-align:center;
+  }
+  .meter-section .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--paper-dim); margin-bottom:10px;
+  }
+  #gaugeSvg{ width:280px; max-width:80%; height:auto; }
+  .gauge-readout{ font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:600; margin-top:-6px; }
+  .gauge-label{ font-size:15px; font-weight:600; margin-top:2px; letter-spacing:0.03em; }
+  .gauge-sub{ font-size:12.5px; color:var(--paper-dim); margin-top:4px; }
+
+  .flags{ text-align:left; max-width:520px; margin:18px auto 0; }
+  .flags h4{ font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--paper-dim); margin-bottom:8px; font-family:'IBM Plex Mono',monospace;}
+  .flag-item{ display:flex; gap:8px; font-size:13px; padding:5px 0; border-bottom:1px solid var(--rail); }
+  .flag-item:last-child{ border:none; }
+  .flag-dot{ flex-shrink:0; margin-top:5px; width:7px; height:7px; border-radius:50%; }
+  .flag-dot.amber{ background:var(--amber); }
+  .flag-dot.red{ background:var(--red); }
+  .flag-item.ok{ color:var(--paper-dim); }
+
+  footer.note{ text-align:center; color:var(--paper-dim); font-size:11.5px; margin-top:30px; font-family:'IBM Plex Mono',monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div>
+      <div class="eyebrow"><span class="rec-dot"></span>SOUNDCHECK</div>
+      <h1>Assessment Health Check</h1>
+      <div class="sub">Run through every channel before you submit. Nothing here marks your work — it just checks the levels.</div>
+    </div>
+    <div class="status-chip" id="topStatus">NOT STARTED</div>
+  </header>
+
+  <div class="setup">
+    <h3>Session setup</h3>
+    <div class="field-row">
+      <div class="field">
+        <label for="moduleName">Module</label>
+        <input type="text" id="moduleName" placeholder="e.g. Artist Development &amp; Entrepreneurship">
+      </div>
+    </div>
+    <label style="margin-top:6px;">Learning outcomes for this assignment</label>
+    <div class="lo-list" id="loList"></div>
+    <button class="add-lo" id="addLoBtn">+ Add learning outcome</button>
+  </div>
+
+  <div class="rack" id="rack"></div>
+
+  <div class="meter-section">
+    <div class="eyebrow">Submission readiness</div>
+    <svg id="gaugeSvg" viewBox="0 0 240 140">
+      <path d="M 20 130 A 100 100 0 0 1 78 42" fill="none" stroke="#D65F5F" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 82 39 A 100 100 0 0 1 158 39" fill="none" stroke="#E8A33D" stroke-width="16" stroke-linecap="round"/>
+      <path d="M 162 42 A 100 100 0 0 1 220 130" fill="none" stroke="#4CAF6D" stroke-width="16" stroke-linecap="round"/>
+      <line id="needle" x1="120" y1="130" x2="120" y2="40" stroke="#EDE9E1" stroke-width="3" stroke-linecap="round" style="transform-origin:120px 130px; transition:transform .4s ease;"/>
+      <circle cx="120" cy="130" r="6" fill="#EDE9E1"/>
+    </svg>
+    <div class="gauge-readout mono" id="gaugeReadout">0%</div>
+    <div class="gauge-label" id="gaugeLabel">Not started</div>
+    <div class="gauge-sub" id="gaugeSub">Work through the channels above to build your score.</div>
+
+    <div class="flags" id="flags"></div>
+  </div>
+
+  <footer class="note">This tool checks preparation, not quality. It never sees or grades your actual writing.</footer>
+</div>
+
+<script>
+// ---------- CONFIG ----------
+let los = [
+  "LO1: Addressed in full",
+  "LO2: Addressed in full",
+  "LO3: Addressed in full"
+];
+
+// CV Checks: word count handled separately (target 300, range 270-330)
+const cvWordTarget = 300, cvWordMin = 270, cvWordMax = 330;
+const cvChecks = [
+  { id:'headshot', label:'Headshot photo', hint:'Is it clear? Face visible? Professional?' },
+  { id:'namestream', label:'Name & stream' },
+  { id:'contact', label:'Contact details', hint:'Including social media where appropriate' },
+  { id:'profile', label:'Profile / About me', hint:'Overview of you as a person and professional' },
+  { id:'experience', label:'Experience', hint:'Rehearsal, live, studio, collaboration' },
+  { id:'education', label:'Education', hint:'Brief overview' },
+  { id:'references', label:'References', hint:'Including names, contact details & a quote/recommendation' },
+  { id:'skills', label:'Skills', hint:'Musical & non-musical' },
+  { id:'designclarity', label:'Design & clarity', hint:'Is the design effective, professional and is the content clear?' }
+];
+
+// Essay Checks: word count handled separately (target 1000, range 900-1100)
+const essayWordTarget = 1000, essayWordMin = 900, essayWordMax = 1100;
+const essayChecks = [
+  { id:'intro', label:'Clear introduction', hint:'Introduce yourself and your essay' },
+  { id:'strengthsweak', label:'Strengths & weaknesses discussed' },
+  { id:'rationale', label:'Rationale for plan choice', hint:'Connect to a weakness' },
+  { id:'smart', label:'SMART goals breakdown', hint:'Including a clear goal for your plan' },
+  { id:'planidea', label:'Plan idea', hint:'Must mention timeline, aims for development, resources' },
+  { id:'research', label:'Research referenced' },
+  { id:'edi', label:'EDI & wellbeing referenced' },
+  { id:'moduletopic', label:'At least one area of study from the module referenced' },
+  { id:'financial', label:'Financial details', hint:'Even if not required' },
+  { id:'bibliography', label:'Bibliography', hint:'Minimum of 3 good, varied sources, cites appropriately using Harvard Referencing' },
+  { id:'designclarity', label:'Design & clarity', hint:'Is the design effective, professional and is the content clear?' }
+];
+
+const presentationChecks = [
+  { id:'spelling', label:'Spelling & grammar checked' },
+  { id:'fonts', label:'Consistent fonts & formatting throughout' },
+  { id:'proofread', label:'Essay has been proofread' }
+];
+
+// ---------- STATE ----------
+let state = {
+  cvWordCount: '',
+  cv: {},
+  essayWordCount: '',
+  essay: {},
+  loStatus: {}, // index -> {done:bool, location:''}
+  presentation: {}
+};
+
+const rack = document.getElementById('rack');
+const loListEl = document.getElementById('loList');
+
+// ---------- RENDER LO SETUP ----------
+function renderLoSetup(){
+  loListEl.innerHTML = '';
+  los.forEach((val, i)=>{
+    const row = document.createElement('div');
+    row.className = 'lo-row';
+    row.innerHTML = `
+      <input type="text" value="${escapeHtml(val)}" data-loindex="${i}" class="lo-input">
+      <button class="icon-btn" data-remove="${i}" title="Remove" aria-label="Remove learning outcome">&times;</button>
+    `;
+    loListEl.appendChild(row);
+  });
+  loListEl.querySelectorAll('.lo-input').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      los[+e.target.dataset.loindex] = e.target.value;
+      renderChannels();
+    });
+  });
+  loListEl.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      const idx = +e.target.dataset.remove;
+      los.splice(idx,1);
+      renderLoSetup();
+      renderChannels();
+    });
+  });
+}
+document.getElementById('addLoBtn').addEventListener('click', ()=>{
+  los.push(`LO${los.length+1}: New learning outcome`);
+  renderLoSetup();
+  renderChannels();
+});
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---------- CHANNEL BUILDERS ----------
+function channelShell(num, title, id, bodyHtml){
+  return `
+    <div class="channel" data-ch="${id}" id="ch-${id}">
+      <div class="ch-head" data-toggle="${id}">
+        <div class="left">
+          <div class="ch-num mono">${num}</div>
+          <div>
+            <div class="ch-title">${title}</div>
+            <div class="ch-meta" id="meta-${id}"></div>
+          </div>
+        </div>
+        <div class="chevron">&#9654;</div>
+      </div>
+      <div class="ch-body">${bodyHtml}</div>
+    </div>
+  `;
+}
+
+function checklistBody(items, statePrefix){
+  return items.map(c=>`
+    <div class="chk">
+      <input type="checkbox" id="${statePrefix}-${c.id}" ${state[statePrefix][c.id] ? 'checked' : ''}>
+      <label for="${statePrefix}-${c.id}" class="txt" style="cursor:pointer;">
+        ${c.label}${c.hint ? `<div class="hint">${c.hint}</div>` : ''}
+      </label>
+    </div>`).join('');
+}
+
+function renderChannels(){
+  let html = '';
+
+  // Channel 1: CV Checks
+  let cvBody = `
+    <div class="word-count-live">
+      <label style="margin:0;">Word count</label>
+      <input type="number" id="cvWcInput" min="0" placeholder="0" value="${state.cvWordCount}">
+      <span class="wc-target mono">target ${cvWordTarget} (${cvWordMin}–${cvWordMax})</span>
+      <span class="wc-status mono" id="cvWcStatus"></span>
+    </div>
+  `;
+  cvBody += checklistBody(cvChecks, 'cv');
+  html += channelShell(1, 'CV checks', 'cv', cvBody);
+
+  // Channel 2: Essay Checks
+  let essayBody = `
+    <div class="word-count-live">
+      <label style="margin:0;">Word count</label>
+      <input type="number" id="essayWcInput" min="0" placeholder="0" value="${state.essayWordCount}">
+      <span class="wc-target mono">target ${essayWordTarget} (${essayWordMin}–${essayWordMax})</span>
+      <span class="wc-status mono" id="essayWcStatus"></span>
+    </div>
+  `;
+  essayBody += checklistBody(essayChecks, 'essay');
+  html += channelShell(2, 'Essay checks', 'essay', essayBody);
+
+  // Channel 3: Learning outcomes
+  let loBody = '';
+  if (los.length === 0){
+    loBody = `<div class="chk"><div class="txt hint">Add learning outcomes above to check them here.</div></div>`;
+  } else {
+    los.forEach((lo, i)=>{
+      const st = state.loStatus[i] || { done:false, location:'' };
+      loBody += `
+        <div class="chk" style="flex-direction:column; align-items:stretch;">
+          <div style="display:flex; gap:10px;">
+            <input type="checkbox" id="lo-${i}" ${st.done ? 'checked':''}>
+            <label for="lo-${i}" class="txt" style="cursor:pointer;">${escapeHtml(lo)}</label>
+          </div>
+          <div class="loc-input">
+            <input type="text" placeholder="Where is this addressed? (e.g. page 4, para 2)" id="loloc-${i}" value="${escapeHtml(st.location)}">
+          </div>
+        </div>`;
+    });
+  }
+  html += channelShell(3, 'Learning outcomes addressed?', 'lo', loBody);
+
+  // Channel 4: Presentation & Final Checks
+  let presBody = checklistBody(presentationChecks, 'presentation');
+  html += channelShell(4, 'Presentation & final checks', 'presentation', presBody);
+
+  rack.innerHTML = html;
+  attachChannelEvents();
+  updateAll();
+}
+
+function attachChannelEvents(){
+  document.querySelectorAll('[data-toggle]').forEach(head=>{
+    head.addEventListener('click', ()=>{
+      const id = head.dataset.toggle;
+      document.getElementById(`ch-${id}`).classList.toggle('open');
+    });
+  });
+
+  cvChecks.forEach(c=>{
+    const el = document.getElementById(`cv-${c.id}`);
+    if (el) el.addEventListener('change', e=>{ state.cv[c.id] = e.target.checked; updateAll(); });
+  });
+  const cvWc = document.getElementById('cvWcInput');
+  if (cvWc) cvWc.addEventListener('input', e=>{ state.cvWordCount = e.target.value; updateAll(); });
+
+  essayChecks.forEach(c=>{
+    const el = document.getElementById(`essay-${c.id}`);
+    if (el) el.addEventListener('change', e=>{ state.essay[c.id] = e.target.checked; updateAll(); });
+  });
+  const essayWc = document.getElementById('essayWcInput');
+  if (essayWc) essayWc.addEventListener('input', e=>{ state.essayWordCount = e.target.value; updateAll(); });
+
+  los.forEach((lo,i)=>{
+    const chk = document.getElementById(`lo-${i}`);
+    const loc = document.getElementById(`loloc-${i}`);
+    if (chk) chk.addEventListener('change', e=>{
+      state.loStatus[i] = state.loStatus[i] || {done:false, location:''};
+      state.loStatus[i].done = e.target.checked;
+      updateAll();
+    });
+    if (loc) loc.addEventListener('input', e=>{
+      state.loStatus[i] = state.loStatus[i] || {done:false, location:''};
+      state.loStatus[i].location = e.target.value;
+      updateAll();
+    });
+  });
+
+  presentationChecks.forEach(c=>{
+    const el = document.getElementById(`presentation-${c.id}`);
+    if (el) el.addEventListener('change', e=>{ state.presentation[c.id] = e.target.checked; updateAll(); });
+  });
+
+  document.getElementById('moduleName').addEventListener('input', updateAll);
+}
+
+// ---------- SCORING ----------
+function wordRangeScore(count, min, max){
+  if (!count) return { inRange:false, score:0 };
+  const inRange = count >= min && count <= max;
+  return { inRange, score: inRange ? 1 : 0 };
+}
+
+function computeScores(){
+  const cvWc = parseInt(state.cvWordCount) || 0;
+  const cvWcResult = wordRangeScore(cvWc, cvWordMin, cvWordMax);
+  const cvDone = cvChecks.filter(c=>state.cv[c.id]).length;
+  const cvTotalItems = cvChecks.length + 1; // +1 for word count
+  const cvScore = (cvDone + cvWcResult.score) / cvTotalItems;
+
+  const essayWc = parseInt(state.essayWordCount) || 0;
+  const essayWcResult = wordRangeScore(essayWc, essayWordMin, essayWordMax);
+  const essayDone = essayChecks.filter(c=>state.essay[c.id]).length;
+  const essayTotalItems = essayChecks.length + 1;
+  const essayScore = (essayDone + essayWcResult.score) / essayTotalItems;
+
+  const loDone = los.filter((_,i)=> state.loStatus[i] && state.loStatus[i].done).length;
+  const loWithLocation = los.filter((_,i)=> state.loStatus[i] && state.loStatus[i].done && state.loStatus[i].location.trim().length>0).length;
+  const loScore = los.length ? loWithLocation / los.length : 0;
+
+  const presDone = presentationChecks.filter(c=>state.presentation[c.id]).length;
+  const presScore = presentationChecks.length ? presDone / presentationChecks.length : 0;
+
+  // Equal weighting across all four channels
+  const overall = (cvScore + essayScore + loScore + presScore) / 4;
+
+  return {
+    cvWc, cvWcResult, cvDone, cvTotal: cvChecks.length, cvScore,
+    essayWc, essayWcResult, essayDone, essayTotal: essayChecks.length, essayScore,
+    loDone, loWithLocation, loTotal: los.length, loScore,
+    presDone, presTotal: presentationChecks.length, presScore,
+    overall
+  };
+}
+
+function updateAll(){
+  const s = computeScores();
+
+  setChannelState('cv', s.cvDone + s.cvWcResult.score, s.cvTotal + 1);
+  setChannelState('essay', s.essayDone + s.essayWcResult.score, s.essayTotal + 1);
+  setChannelState('lo', s.loWithLocation, s.loTotal);
+  setChannelState('presentation', s.presDone, s.presTotal);
+
+  updateWcStatus('cvWcStatus', s.cvWc, cvWordMin, cvWordMax, s.cvWcResult.inRange);
+  updateWcStatus('essayWcStatus', s.essayWc, essayWordMin, essayWordMax, s.essayWcResult.inRange);
+
+  const pct = Math.round(s.overall * 100);
+  const angle = -90 + (pct/100)*180;
+  document.getElementById('needle').style.transform = `rotate(${angle}deg)`;
+  document.getElementById('gaugeReadout').textContent = pct + '%';
+
+  let label, sub, chipText, chipColor;
+  if (pct >= 85){
+    label = 'Strong — ready to submit'; chipText='STRONG'; chipColor=getVar('--green');
+    sub = 'Only minor improvements suggested, if any.';
+  } else if (pct >= 60){
+    label = 'Needs attention'; chipText='NEEDS ATTENTION'; chipColor=getVar('--amber');
+    sub = 'A few gaps below could cost marks — worth a look before you submit.';
+  } else {
+    label = 'High risk of losing marks'; chipText='HIGH RISK'; chipColor=getVar('--red');
+    sub = 'Several checks are incomplete. Work through the flagged items below.';
+  }
+  document.getElementById('gaugeLabel').textContent = label;
+  document.getElementById('gaugeLabel').style.color = chipColor;
+  document.getElementById('gaugeSub').textContent = sub;
+  const topStatus = document.getElementById('topStatus');
+  topStatus.textContent = chipText;
+  topStatus.style.color = chipColor;
+  topStatus.style.borderColor = chipColor;
+
+  renderFlags(s);
+}
+
+function updateWcStatus(elId, count, min, max, inRange){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  if (!count){ el.textContent = ''; return; }
+  if (inRange){ el.textContent = 'On target'; el.style.color = 'var(--green)'; }
+  else if (count < min){ el.textContent = `${min - count} words short`; el.style.color = 'var(--amber)'; }
+  else { el.textContent = `${count - max} words over`; el.style.color = 'var(--amber)'; }
+}
+
+function getVar(name){
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function setChannelState(id, done, total, answeredOverride){
+  const el = document.getElementById(`ch-${id}`);
+  const meta = document.getElementById(`meta-${id}`);
+  if (!el) return;
+  meta.textContent = total ? `${Math.round(done)} / ${total}` : '—';
+  el.classList.remove('complete','partial');
+  if (total > 0 && Math.round(done) === total) el.classList.add('complete');
+  else if (done > 0) el.classList.add('partial');
+}
+
+function renderFlags(s){
+  const flags = [];
+  if (s.cvWc && !s.cvWcResult.inRange) flags.push({level:'amber', text:`CV word count is ${s.cvWc < cvWordMin ? 'below' : 'above'} range (${s.cvWc}, target ${cvWordMin}–${cvWordMax}).`});
+  if (s.cvDone < s.cvTotal) flags.push({level:'amber', text:`${s.cvTotal - s.cvDone} CV item(s) not yet confirmed.`});
+  if (s.essayWc && !s.essayWcResult.inRange) flags.push({level:'amber', text:`Essay word count is ${s.essayWc < essayWordMin ? 'below' : 'above'} range (${s.essayWc}, target ${essayWordMin}–${essayWordMax}).`});
+  if (s.essayDone < s.essayTotal) flags.push({level:'amber', text:`${s.essayTotal - s.essayDone} essay item(s) not yet confirmed.`});
+  if (s.loTotal > 0 && s.loWithLocation < s.loTotal) flags.push({level: s.loWithLocation===0 ? 'red':'amber', text:`${s.loTotal - s.loWithLocation} learning outcome(s) not yet located in your work.`});
+  if (s.presDone < s.presTotal) flags.push({level:'amber', text:`${s.presTotal - s.presDone} presentation item(s) outstanding.`});
+
+  const container = document.getElementById('flags');
+  if (flags.length === 0){
+    container.innerHTML = `<h4>Flags</h4><div class="flag-item ok">Nothing flagged — every channel is clear.</div>`;
+    return;
+  }
+  container.innerHTML = `<h4>Flags</h4>` + flags.map(f=>`
+    <div class="flag-item"><span class="flag-dot ${f.level}"></span><span>${f.text}</span></div>
+  `).join('');
+}
+
+// ---------- INIT ----------
+renderLoSetup();
+renderChannels();
+document.getElementById('ch-cv').classList.add('open');
+</script>
+</body>
+</html>
